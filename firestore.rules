@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper: check if the user is accessing their own document.
+    // Documents in this app that belong to a single user use the user's
+    // uid as the document id (e.g. users/{uid}, savedExams/{uid}).
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Users collection: only the owner can read/write their own user document
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Quiz results: only the owner can read/write.
+    // Each quiz result document stores `uid` of the owner.
+    match /quizResults/{resultId} {
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.uid;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.uid;
+    }
+
+    // Mock test results: only the owner can read/write.
+    // Each mock result document stores `uid` of the owner.
+    match /mockResults/{resultId} {
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.uid;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.uid;
+    }
+
+    // Saved exams: the document id is the owner's uid, NOT a `uid` field.
+    // The document body is { examIds: [...] }.
+    match /savedExams/{userId} {
+      // Owner can read/write their own saved-exams list.
+      allow read, write: if isOwner(userId);
+      // The catch-all below only allows public reads; we need an explicit
+      // write rule for the owner (already covered above).
+    }
+
+    // Public collections (announcements, bulletins, exams, stats, leaderboard, testimonials)
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
