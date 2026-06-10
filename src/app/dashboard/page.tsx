@@ -181,7 +181,7 @@ export default function DashboardPage() {
               <h2 className="dashboard-section-title">🔖 Saved Exams</h2>
               {savedExams.length === 0 ? <p style={{ color: "var(--text-muted)" }}>You haven't saved any exams. <Link href="/exam-calendar">Browse the calendar</Link> and save exams.</p> : savedExams.map(e => (
                 <div className="dashboard-result-card" key={e.id}>
-                  <div className="dashboard-result-info"><div className="dashboard-result-title">{e.examName}</div><div className="dashboard-result-meta">{e.exam_board} • Exam: {e.exam_date}</div></div>
+                  <div className="dashboard-result-info"><div className="dashboard-result-title">{e.exam_name}</div><div className="dashboard-result-meta">{e.exam_board} • Exam: {e.exam_date}</div></div>
                   <span className={`exam-card-tag ${e.status}`}>{e.status}</span>
                 </div>
               ))}

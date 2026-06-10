@@ -1,6 +1,4 @@
-// src/lib/api.ts
-// TypeScript port of js/api.js — REST API client to the exam backend
-import type { Paper, Announcement, Bulletin, Analytics, QuizTopic } from "@/types";
+import type { Paper, Announcement, Bulletin, Analytics, QuizTopic, EnrichedMockTest, Question, LeaderboardData, TestimonialData } from "@/types";
 
 const PRODUCTION_API_URL = "https://array-to-pdf-converter.onrender.com";
 const API_BASE_URLS: string[] = [PRODUCTION_API_URL];
@@ -35,6 +33,7 @@ async function request<T>(path: string): Promise<T> {
 
 export const examApi = Object.freeze({
   baseUrl: API_BASE_URLS[0],
+  
   async listPapers(): Promise<Paper[]> {
     const result = await request<{ papers?: Paper[] }>("/papers");
     return result.papers || [];
@@ -50,16 +49,43 @@ export const examApi = Object.freeze({
   getPaper(paperId: string): Promise<Paper> {
     return request<Paper>(`/paper/${encodeURIComponent(paperId)}`);
   },
+
   async getAnnouncements(): Promise<Announcement[]> {
-    return request<Announcement[]>("/announcements");
+    const response = await request<Announcement[]>("/announcements");
+
+    console.log("API response in api.ts:", response);
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    return [];
   },
+
   async getBulletins(): Promise<Bulletin[]> {
-    return request<Bulletin[]>("/bulletins");
+    const response = await request<{ bulletins: Bulletin[] }>("/bulletins");
+    return response.bulletins || [];
   },
+
   async getAnalytics(): Promise<Analytics> {
-    return request<Analytics>("/analytics");
+    const result = await request<{ metrics: any[] }>("/analytics");
+    return (result || { metrics: [] }) as unknown as Analytics;
   },
-  /** GET /exams — exam calendar data (fallback to sampleData) */
+
+  async getLeaderBoard(): Promise<LeaderboardData> {
+    const result = await request<any>("/analytics");
+    return {
+      leaderboard_data: result?.leaderboard_data || result?.leader_board_data || []
+    };
+  },
+
+  async getTestimonial(): Promise<TestimonialData> {
+    const result = await request<any>("/analytics");
+    return {
+      testimonial_data: result?.testimonial_data || []
+    };
+  },
+
   async getExams(): Promise<import("@/types").ExamCalendarItem[]> {
     const d = await request<{ papers?: any[] }>("/papers");
 
@@ -73,17 +99,14 @@ export const examApi = Object.freeze({
       vacancy: paper.vacancy,
       sector: paper.sector,
       status: paper.status,
+      apply_url: paper.apply_url,
       eligibility: paper.eligibility,
     }));
 
   },
-  /** GET /quiz-topics — quiz topics and questions */
-  // @/lib/api.ts ke andar
+  
   async getQuizTopics(): Promise<QuizTopic[]> {
-    // Pura object fetch karein jisme { topics: QuizTopic[] } ho
     const result = await request<{ topics: QuizTopic[] }>("/quiz-topics");
-
-    // Usme se topics waali array nikal kar return kar dein
     return result.topics || [];
   },
 
@@ -91,11 +114,16 @@ export const examApi = Object.freeze({
     return await request<QuizTopic>(`/quiz-topics/${topicId}`);
   },
 
-  /** GET /mock-tests — mock test configurations */
-  async getMockTests(): Promise<import("@/types").MockTest[]> {
+  async getMockTests(): Promise<EnrichedMockTest[]> {
     try {
-      const d = await request<{ tests?: import("@/types").MockTest[] }>("/mock-tests");
-      return d.tests || [];
-    } catch { return []; }
+      return await request<EnrichedMockTest[]>("/mock-tests");
+    } catch (err) {
+      console.error("Error loading mock test list:", err);
+      return [];
+    }
+  },
+
+  async getMockTestQuestions(paperId: string): Promise<{ id: string; questions: Question[] }> {
+    return request<{ id: string; questions: Question[] }>(`/mock-test/${encodeURIComponent(paperId)}`);
   },
 });

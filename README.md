@@ -38,7 +38,6 @@ src/
 ├── components/               # All UI components
 ├── context/                  # AuthContext, ThemeContext, ToastContext
 ├── lib/                      # firebase.ts, api.ts
-├── data/sampleData.ts        # Quiz topics, mock tests, calendar
 ├── types/                    # TypeScript types + module shims
 └── styles/                   # (merged into globals.css)
 ```

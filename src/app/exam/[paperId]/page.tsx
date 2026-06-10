@@ -86,7 +86,9 @@ export default function ExamQuestionsPage() {
   // child" runtime error when the backend returns an object instead of
   // a string for eligibility / ageLimit.
   const eligibilityText = formatEligibility(paper.eligibility);
-  const ageLimitText = formatAgeLimit(paper.ageLimit);
+  const ageLimitText = formatAgeLimit(
+    paper.age_limit as string | { min?: number; max?: number; relaxation?: string } | undefined | null
+  );
 
   return (
     <div className="home-container">

@@ -19,6 +19,7 @@ export default function QuizPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [showExp, setShowExp] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const savedRef = useRef(false);
 
   const startQuiz = (t: QuizTopic) => {
@@ -26,6 +27,7 @@ export default function QuizPage() {
     setTopic(t); setIdx(0); setAnswers(new Array(t.questions.length).fill(null));
     setTimeLeft(30 * t.questions.length); setShowExp(false); setShowResult(false); savedRef.current = false;
   };
+
   const finish = async () => {
     if (!topic || savedRef.current) return;
     savedRef.current = true; setShowResult(true);
@@ -42,9 +44,7 @@ export default function QuizPage() {
       }
     } else { showToast(`Score: ${score}`, "info"); }
   };
-  // Use a ref so the timer's setTimeout always calls the latest `finish`
-  // (avoids stale-closure issues when the dependency array would otherwise
-  // need to include the function reference).
+
   const finishRef = useRef<() => void>(() => { });
   finishRef.current = finish;
 
@@ -55,28 +55,37 @@ export default function QuizPage() {
     return () => clearTimeout(t);
   }, [topic, timeLeft, showResult]);
 
-
-
- useEffect(() => {
-  (async () => {
-    try {
-      // Ab 'response' seedha QuizTopic[] ki array hai
-      const response = await examApi.getQuizTopics(); 
-      
-      // Direct array ki length check karein
-      if (response && response.length) {
-        setTopics(response); // Sahi array state mein set ho gayi 🎉
-      } else {
-        const { topics: fallback } = await import("@/data/sampleData");
-        setTopics(fallback);
+  useEffect(() => {
+    (async () => {
+      try {
+        setIsLoading(true);
+        const response = await examApi.getQuizTopics();
+        if (response && response.length) setTopics(response);
+      } catch (error) {
+        console.error("Quiz fetch failed:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Quiz fetch failed:", error);
-      const { topics: fallback } = await import("@/data/sampleData");
-      setTopics(fallback);
-    }
-  })();
-}, []);
+    })();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="home-container">
+        <div style={{ height: "30px", width: "200px", background: "#e0e0e0", borderRadius: "4px", margin: "20px 0", animation: "pulse 1.5s infinite" }} />
+        <div className="quiz-topics-grid">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+            <div key={i} className="quiz-topic-card" style={{ cursor: "default", animation: "pulse 1.5s infinite" }}>
+              <div style={{ background: "#e0e0e0", width: 64, height: 64, borderRadius: 16, margin: "0 auto 12px" }} />
+              <div style={{ background: "#e0e0e0", height: 16, width: "70%", margin: "0 auto 8px", borderRadius: "4px" }} />
+              <div style={{ background: "#e0e0e0", height: 12, width: "40%", margin: "0 auto", borderRadius: "4px" }} />
+              <style>{`@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }`}</style>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!topic) {
     return (

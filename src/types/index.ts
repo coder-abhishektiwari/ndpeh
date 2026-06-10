@@ -71,6 +71,7 @@ export interface ExamCalendarItem {
   status: "upcoming" | "ongoing" | "closed";
   sector?: string;
   [key: string]: unknown;
+  apply_url?: string;
   eligibility?: string | EligibilityObject;
   ageLimit?: string | { age_min?: number; age_max?: number; age_relaxation?: string };
 }
@@ -86,6 +87,10 @@ export interface MockTest {
   passingMarks: number;
   category: string;
   questions: MockQuestion[];
+  layoutType?: LayoutType;
+  sections?: SectionConfig[];
+  sessions?: Session[];
+  specialties?: string[];
 }
 
 export interface MockQuestion {
@@ -93,6 +98,9 @@ export interface MockQuestion {
   options: string[];
   answer: number;
   explanation?: string;
+  sectionId?: string;
+  specialty?: string;
+  passage?: string;
 }
 
 export interface QuizTopic {
@@ -169,37 +177,101 @@ export interface SavedExam {
 
 export interface Announcement {
   id: string;
-  text: string;
+  icon: string;
+  title: string;
+  description: string,
   link?: string;
-  date?: string;
   isNew?: boolean;
 }
 
 export interface Bulletin {
   id: string;
-  title: string;
   date: string;
-  description: string;
+  title: string;
   link?: string;
-  category?: string;
+}
+
+export interface Metric {
+  label: string;
+  description: string;
+  value: string;
 }
 
 export interface Analytics {
-  totalUsers?: number;
-  totalTests?: number;
-  totalQuizzes?: number;
-  totalDownloads?: number;
-  [key: string]: unknown;
+  metrics: Metric[];
 }
 
 export interface LeaderboardEntry {
-  name: string;
-  score: number;
-  badge?: string;
+  name: string,
+  score: number
 }
+
+export interface LeaderboardData {
+  leaderboard_data: LeaderboardEntry[];
+}
+
 
 export interface Testimonial {
   name: string;
   message: string;
   rating: number;
+}
+export interface TestimonialData {
+  testimonial_data: Testimonial[];
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// types/examEngine.ts
+// Extended type definitions for the Dynamic Exam Engine
+// ─────────────────────────────────────────────────────────────
+
+export type LayoutType =
+  | "STANDARD"          // Single global timer, free navigation
+  | "SECTIONAL_LOCK"    // Per-section timers, locked after expiry (Banking)
+  | "MULTI_SESSION"     // Session 1 / Session 2 blocks with session-level rules
+  | "TECH_SPLIT"        // Branch selector overlay + filtered question set (GATE)
+  | "PASSAGE_SPLIT";    // Split-screen reading passage + question (Law/Judiciary)
+
+export interface Question {
+  q: string;
+  options: string[];
+  answer: number;          // 0-based index of correct option
+  sectionId: string;       // e.g. "math" | "reasoning" | "english" | "technical"
+  specialty?: string;      // TECH_SPLIT: "civil" | "mechanical" | "cs" | "electrical"
+  passage?: string;        // PASSAGE_SPLIT: full passage text
+}
+
+export interface SectionConfig {
+  id: string;              // Matches question.sectionId
+  label: string;           // Display name e.g. "English Language"
+  duration: number;        // Section time in minutes (SECTIONAL_LOCK)
+  noNegative?: boolean;    // Override: disable negative marking for this section
+}
+
+export interface Session {
+  id: string;
+  label: string;           // e.g. "Session 1 — Objective"
+  sectionIds: string[];    // Which sectionIds belong to this session
+  noNegative?: boolean;    // Override: disable negative marking for this session
+}
+
+export interface EnrichedMockTest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  duration: number;              // Total duration in minutes (global timer)
+  total_questions: number;
+  total_marks: number;
+  negativeMarking: number;       // Default negative marking per wrong answer
+  passingMarks: number;
+  layoutType: LayoutType;        // Controls which engine variant renders
+  path: string;
+  questions: Question[];
+
+  // ── Layout-specific config ──────────────────────────
+  sections?: SectionConfig[];    // Required for SECTIONAL_LOCK
+  sessions?: Session[];          // Required for MULTI_SESSION
+  specialties?: string[];        // Required for TECH_SPLIT; list of branch names
 }
